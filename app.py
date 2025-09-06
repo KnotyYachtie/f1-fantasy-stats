@@ -46,19 +46,48 @@ def _h2h(df):
 
 # ---------- Sidebar ----------
 with st.sidebar:
-    st.header("Data")
-    use_sample = st.toggle("Use sample Monza data", value=True)
-    if use_sample:
+        st.header("Data")
+    source = st.radio("Data source", ["Sample", "Upload CSVs", "OpenF1"], index=0, horizontal=True)
+
+    if source == "Sample":
+        use_sample = True
         sess_path = "data/sessions.csv"
         res_path = "data/results.csv"
         st.success("Using bundled sample data.")
-        sessions_file = None
-        results_file = None
-    else:
+        sessions_file = results_file = None
+
+    elif source == "Upload CSVs":
+        use_sample = False
         sessions_file = st.file_uploader("Upload sessions.csv (practice & quali)", type=["csv"])
         results_file  = st.file_uploader("Upload results.csv (grid & finish)", type=["csv"])
         sess_path = sessions_file
-        res_path = results_file
+        res_path  = results_file
+
+    else:  # OpenF1
+        use_sample = False
+        season  = st.number_input("Season (year)", value=2025, step=1)
+        round_no = st.number_input("Round", value=16, step=1)
+
+        if st.button("Fetch from OpenF1"):
+            with st.spinner("Fetching OpenF1 data..."):
+                s_like, r_like = openf1_to_sessions_results(int(season), int(round_no))
+
+            if s_like.empty or r_like.empty:
+                st.error("No OpenF1 data found for that Season/Round.")
+                st.stop()
+
+            # Cache to files so downstream code can read like CSVs
+            s_like.to_csv("data/_openf1_sessions_cache.csv", index=False)
+            r_like.to_csv("data/_openf1_results_cache.csv", index=False)
+            st.session_state["openf1_loaded"] = True
+            st.success("OpenF1 data loaded.")
+
+        if st.session_state.get("openf1_loaded"):
+            sess_path = "data/_openf1_sessions_cache.csv"
+            res_path  = "data/_openf1_results_cache.csv"
+        else:
+            st.info("Choose season/round and click 'Fetch from OpenF1'.")
+            st.stop()
 
     st.divider()
     st.header("Scoring")
