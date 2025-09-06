@@ -46,7 +46,7 @@ def _h2h(df):
 
 # ---------- Sidebar ----------
 with st.sidebar:
-        st.header("Data")
+    st.header("Data")
     source = st.radio("Data source", ["Sample", "Upload CSVs", "OpenF1"], index=0, horizontal=True)
 
     if source == "Sample":
