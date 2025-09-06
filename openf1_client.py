@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, Tuple
 BASE = "https://api.openf1.org/v1"
 
 def _get(endpoint: str, params: Dict[str, Any]) -> pd.DataFrame:
-    def sessions_by_year(year: int) -> pd.DataFrame:
+def sessions_by_year(year: int) -> pd.DataFrame:
     """
     Return all sessions for a given season.
     Useful for building the list of Race sessions (for picking by race name).
