@@ -94,3 +94,87 @@ def simulate_points(df: pd.DataFrame, cfg: PointsConfig) -> pd.DataFrame:
 def aggregate_points(sim_df: pd.DataFrame) -> pd.DataFrame:
     agg = sim_df.groupby(["season","round","grand_prix","driver","team"], as_index=False)["sim_points"].sum()
     return agg.sort_values(["season","round","sim_points"], ascending=[True, True, False])
+
+def teammate_h2h(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Compute head-to-head per race vs teammate based on finish.
+    Rules:
+      - Lower finish wins.
+      - If one DNF and the other finished, finisher wins.
+      - If both DNF or missing finishes, no result.
+      - If a team has != 2 drivers for an event, skip that team/event.
+    Returns:
+      per_race: rows with [season, round, grand_prix, team, driver, teammate, finish, tm_finish, dnf, tm_dnf, beat_teammate (0/1)]
+      summary: rows with [driver, wins, losses, total, win_pct]
+    """
+    needed = {"season","round","grand_prix","driver","team","finish","dnf"}
+    if not needed.issubset(df.columns):
+        return pd.DataFrame(), pd.DataFrame()
+    # pick only needed columns
+    cols = list(needed)
+    sub = df[cols].copy()
+    # group by event+team
+    grp = sub.groupby(["season","round","grand_prix","team"], dropna=False)
+    rows = []
+    for (season, rnd, gp, team), g in grp:
+        g = g.dropna(subset=["driver"])
+        if len(g) != 2:
+            continue
+        a, b = g.iloc[0].copy(), g.iloc[1].copy()
+        # define comparable finishes
+        def outcome(x):
+            f = x["finish"]; d = x.get("dnf", 0)
+            if pd.isna(f):
+                return None, int(d) if not pd.isna(d) else 0
+            return int(f), int(d) if not pd.isna(d) else 0
+        fa, da = outcome(a); fb, db = outcome(b)
+        # decide winners
+        def decide(f1, d1, f2, d2):
+            # returns 1 if 1 beats 2, 0 if loses, None if no result
+            if f1 is None and f2 is None:
+                return None
+            if d1==1 and d2==1:
+                return None
+            if d1==1 and d2==0:
+                return 0
+            if d1==0 and d2==1:
+                return 1
+            if f1 is None or f2 is None:
+                return None
+            if f1 < f2:
+                return 1
+            if f1 > f2:
+                return 0
+            return None  # exact tie / identical
+        a_win = decide(fa, da, fb, db)
+        b_win = decide(fb, db, fa, da) if a_win is not None else None
+        rows.append({
+            "season": int(season) if not pd.isna(season) else season,
+            "round": int(rnd) if not pd.isna(rnd) else rnd,
+            "grand_prix": gp, "team": team,
+            "driver": a["driver"], "teammate": b["driver"],
+            "finish": fa, "tm_finish": fb, "dnf": da, "tm_dnf": db,
+            "beat_teammate": a_win
+        })
+        rows.append({
+            "season": int(season) if not pd.isna(season) else season,
+            "round": int(rnd) if not pd.isna(rnd) else rnd,
+            "grand_prix": gp, "team": team,
+            "driver": b["driver"], "teammate": a["driver"],
+            "finish": fb, "tm_finish": fa, "dnf": db, "tm_dnf": da,
+            "beat_teammate": b_win
+        })
+    per_race = pd.DataFrame(rows)
+    # summary
+    if per_race.empty:
+        return per_race, pd.DataFrame()
+    valid = per_race.dropna(subset=["beat_teammate"]).copy()
+    valid["beat_teammate"] = valid["beat_teammate"].astype(int)
+    summ = valid.groupby("driver", as_index=False).agg(
+        wins=("beat_teammate","sum"),
+        total=("beat_teammate","count")
+    )
+    summ["losses"] = summ["total"] - summ["wins"]
+    summ["win_pct"] = (summ["wins"] / summ["total"]).round(3)
+    summ = summ[["driver","wins","losses","total","win_pct"]].sort_values(["win_pct","total","wins"], ascending=[False, False, False])
+    return per_race.sort_values(["season","round","team","driver"]), summ
