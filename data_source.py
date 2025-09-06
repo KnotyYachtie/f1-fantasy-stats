@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Optional, Tuple, List
 import pandas as pd
 
-# Uses the helpers we put in openf1_client.py
 from openf1_client import (
     sessions,            # list sessions for a meeting_key
     sessions_by_year,    # list all sessions for a season
@@ -26,14 +25,14 @@ def _first_present(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
 
 def races_for_season(season: int) -> pd.DataFrame:
     """
-    Return one row per Race session for a season with a human-friendly label.
-    Columns: meeting_key, session_key, label, round
+    Return one row per Race session for a season with a clean human-friendly label.
+    Columns returned: meeting_key, session_key, label, round
     """
     s = sessions_by_year(season)
     if s.empty:
         return pd.DataFrame(columns=["meeting_key", "session_key", "label", "round"])
 
-    # Filter to Race sessions (case-insensitive, guards if column missing)
+    # Filter to Race sessions (case-insensitive, guard if column missing)
     name_col = "session_name" if "session_name" in s.columns else None
     races = s[s[name_col].astype(str).str.lower().eq("race")] if name_col else s.copy()
     if races.empty:
@@ -53,18 +52,16 @@ def races_for_season(season: int) -> pd.DataFrame:
         ["meeting_name", "meeting", "meeting_official_name", "circuit_short_name", "meeting_name_official"]
     )
 
+    # Build tidy label WITHOUT date for UI
     def mk_label(row: pd.Series) -> str:
         rno = f"R{int(row['round']):02d}"
         name = str(row.get(meeting_name_col, "") or "").strip() if meeting_name_col else ""
-        # format date if present
-        d = str(row.get(date_col, "") or "")
-        ds = d[:10] if d else ""
-        return f"{rno} – {name} ({ds})" if name else (f"{rno} ({ds})" if ds else rno)
+        return f"{rno} – {name}" if name else rno
 
     races["label"] = races.apply(mk_label, axis=1)
 
     keep_cols = ["meeting_key", "session_key", "label", "round"]
-    # Some schemas may not expose meeting_key/session_key; guard with defaults
+    # Guard: ensure all keep_cols exist
     for col in keep_cols:
         if col not in races.columns:
             races[col] = pd.NA
@@ -106,9 +103,9 @@ def openf1_to_sessions_results_by_meeting(season: int, meeting_key: int) -> Tupl
     race_raw  = session_result(race_key)  if race_key  else pd.DataFrame()
     grid_raw  = starting_grid(race_key)   if race_key  else pd.DataFrame()
 
-    # Build driver/ team mapping for nicer display
+    # Build driver/team mapping for nicer display
     drv = of1_drivers(meeting_key=meeting_key)
-    num_to_name_team: dict[int, Tuple[Optional[str], Optional[str]]] = {}
+    num_to_name_team: dict[int, tuple[Optional[str], Optional[str]]] = {}
     if not drv.empty:
         for _, r in drv.iterrows():
             num = r.get("driver_number")
@@ -142,14 +139,13 @@ def openf1_to_sessions_results_by_meeting(season: int, meeting_key: int) -> Tupl
     base = pd.merge(base,      race_df,  on=["driver", "team"], how="outer")
 
     # Determine round number for this meeting (optional, for compatibility)
-    # We compute it from the season's race ordering
     try:
         races_df = races_for_season(season)
         round_val = int(races_df.loc[races_df["meeting_key"] == meeting_key, "round"].iloc[0])
     except Exception:
         round_val = None
 
-    # sessions-like (Practice slots left blank for now; we can fill later)
+    # sessions-like (Practice slots left blank for now; fill later if needed)
     sessions_like = base.copy()
     sessions_like["season"] = season
     sessions_like["grand_prix"] = gp_name
@@ -162,7 +158,7 @@ def openf1_to_sessions_results_by_meeting(season: int, meeting_key: int) -> Tupl
         sessions_like[c] = pd.NA
     sessions_like = sessions_like[cols]
 
-    # results-like (DNF/fastest_lap left as 0 for now; we can derive from session_result later)
+    # results-like (DNF/fastest_lap left as 0 for now; derive later if needed)
     results_like = base.copy()
     results_like["season"] = season
     results_like["grand_prix"] = gp_name
