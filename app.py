@@ -35,7 +35,30 @@ def _cons(results, window):
 
 @st.cache_data
 def _sim(df, cfg_json):
-    cfg = PointsConfig(**json.loads(cfg_json))
+    raw = json.loads(cfg_json)
+
+    # Drop keys PointsConfig doesn’t know about (e.g., "gridrival")
+    allowed = {
+        "race_points_by_finish",
+        "qualifying_points_by_position",
+        "pole_bonus",
+        "fastest_lap_bonus",
+        "dnf_penalty",
+        "position_gain_bonus",
+        "position_loss_penalty",
+        "practice_points_by_position",
+    }
+    sanitized = {k: v for k, v in raw.items() if k in allowed}
+
+    # Ensure maps are dicts with string keys (defensive)
+    def stringify_keys(d):
+        return {str(k): v for k, v in d.items()} if isinstance(d, dict) else {}
+
+    sanitized["race_points_by_finish"] = stringify_keys(sanitized.get("race_points_by_finish", {}))
+    sanitized["qualifying_points_by_position"] = stringify_keys(sanitized.get("qualifying_points_by_position", {}))
+    sanitized["practice_points_by_position"] = stringify_keys(sanitized.get("practice_points_by_position", {}))
+
+    cfg = PointsConfig(**sanitized)
     sim = simulate_points(df, cfg)
     agg = aggregate_points(sim)
     return agg
