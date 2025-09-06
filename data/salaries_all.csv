@@ -1,0 +1,31 @@
+season,round,entity_type,entity,team,salary
+2025,16,driver,Oscar Piastri,Mclaren,28200000
+2025,16,driver,Lando Norris,Mclaren,28000000
+2025,16,driver,Charles Leclerc,Ferrari,25100000
+2025,16,driver,Max Verstappen,RedBull Racing,24900000
+2025,16,driver,George Russell,Mercedes,24900000
+2025,16,driver,Lewis Hamilton,Ferrari,18300000
+2025,16,driver,Alex Albon,Williams,17900000
+2025,16,driver,Fernando Alonso,Aston Martin,17400000
+2025,16,driver,Isack Hadjar,Racing Bulls,15000000
+2025,16,driver,Liam Lawson,Racing Bulls,14600000
+2025,16,driver,Oliver Bearman,Haas,14300000
+2025,16,driver,Lance Stroll,Aston Martin,13700000
+2025,16,driver,Nico Hulkenberg,Kick Sauber,13400000
+2025,16,driver,Esteban Ocon,Haas,13000000
+2025,16,driver,Yuki Tsunoda,RedBull Racing,12100000
+2025,16,driver,Kimi Antonelli,Mercedes,11800000
+2025,16,driver,Carlos Sainz Jr,Williams,11700000
+2025,16,driver,Gabriel Bortoleto,Kick Sauber,11200000
+2025,16,driver,Pierre Gasly,Alpine,10600000
+2025,16,driver,Franco Colapinto,Alpine,8100000
+2025,16,constructor,Mclaren,,28800000
+2025,16,constructor,Mercedes,,22400000
+2025,16,constructor,Ferrari,,22200000
+2025,16,constructor,RedBull Racing,,21900000
+2025,16,constructor,Racing Bulls,,17600000
+2025,16,constructor,Aston Martin,,15400000
+2025,16,constructor,Williams,,14600000
+2025,16,constructor,Kick Sauber,,12800000
+2025,16,constructor,Haas,,11800000
+2025,16,constructor,Alpine,,8100000
