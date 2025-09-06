@@ -10,6 +10,11 @@ from analytics import (
 
 st.set_page_config(page_title="F1 Fantasy Analytics (GridRival)", layout="wide")
 
+# Ensure cache folder exists for OpenF1 pulls
+Path("data").mkdir(exist_ok=True)
+if "openf1_loaded" not in st.session_state:
+    st.session_state["openf1_loaded"] = False
+
 st.title("F1 Fantasy Analytics — GridRival Companion")
 st.caption("Fast-start build with Teammate H2H — cached, no heavy deps, on-demand compute.")
 
